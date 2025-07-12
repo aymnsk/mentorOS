@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MCP Terminal Agent</title>
+  <style>
+    body {
+      background-color: #0f0f0f;
+      font-family: 'Courier New', monospace;
+      color: #00ff00;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #terminal {
+      background-color: #1a1a1a;
+      width: 90%;
+      max-width: 900px;
+      height: 95%;
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px #00ff00;
+      overflow-y: auto;
+    }
+
+    #chat {
+      white-space: pre-wrap;
+      margin-bottom: 1em;
+    }
+
+    #input-bar {
+      display: flex;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    #agent {
+      background: #000;
+      color: #0f0;
+      border: 1px solid #0f0;
+      padding: 6px;
+      font-size: 1rem;
+      margin-right: 10px;
+    }
+
+    #input {
+      flex-grow: 1;
+      padding: 10px;
+      background: #000;
+      color: #0f0;
+      border: 1px solid #0f0;
+      font-size: 1rem;
+    }
+
+    ::selection {
+      background: #0f0;
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+  <div id="terminal">
+    <div id="chat"></div>
+    <div id="input-bar">
+      <select id="agent">
+        <option value="kernel">🧠 Kernel Agent</option>
+        <option value="os">💻 OS Agent</option>
+      </select>
+      <input id="input" type="text" placeholder="Ask your mentor..." autofocus />
+    </div>
+  </div>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("input");
+    const agentSelector = document.getElementById("agent");
+
+    // ✅ Hardcoded to your Replit backend URL
+    const BACKEND_URL = "https://21f9505f-1c16-4cf0-b124-d8570113d6b9-00-dc4e2n37xko5.sisko.replit.dev";
+
+    function typeEffect(element, text, speed = 20) {
+      let i = 0;
+      function typing() {
+        if (i < text.length) {
+          element.innerHTML += text.charAt(i);
+          i++;
+          setTimeout(typing, speed);
+        }
+      }
+      typing();
+    }
+
+    input.addEventListener("keydown", async (e) => {
+      if (e.key === "Enter" && input.value.trim() !== "") {
+        const userMsg = input.value.trim();
+        const agent = agentSelector.value;
+        input.value = "";
+
+        chat.innerHTML += `\n> ${userMsg}\n`;
+        chat.scrollTop = chat.scrollHeight;
+
+        try {
+          const res = await fetch(`${BACKEND_URL}/ask?agent=${agent}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ message: userMsg })
+          });
+
+          const data = await res.json();
+          chat.innerHTML += `LinusAI (${agent}):\n`;
+          typeEffect(chat, data.reply + "\n\n");
+
+        } catch (err) {
+          chat.innerHTML += `[Error] Could not reach backend.\n\n`;
+        }
+
+        chat.scrollTop = chat.scrollHeight;
+      }
+    });
+  </script>
+</body>
+</html>
