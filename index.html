@@ -2,31 +2,69 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>MCP Terminal — v1</title>
+  <title>MCP Terminal — LinusAI</title>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap" rel="stylesheet">
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
       margin: 0;
-      background: #000000;
+      background: #000;
       color: #00ffcc;
       font-family: 'Fira Mono', Menlo, Monaco, Consolas, monospace;
       display: flex;
-      justify-content: center;
-      align-items: center;
       height: 100vh;
     }
 
-    #terminal-wrapper {
-      background: rgba(0, 0, 0, 0.85);
+    #sidebar {
+      width: 240px;
+      background: #111;
+      border-right: 1px solid #00ffcc44;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+    }
+
+    #sidebar h2 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      color: #00ffccaa;
+    }
+
+    .chat-title {
+      background: transparent;
+      color: #00ffcc;
+      border: none;
+      text-align: left;
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+
+    #new-chat {
+      background: #000;
+      border: 1px solid #00ffcc;
+      color: #00ffcc;
+      padding: 6px;
+      margin-top: auto;
+      border-radius: 6px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+    }
+
+    #terminal {
+      background: rgba(0,0,0,0.85);
       border: 1px solid #00ffcc44;
       border-radius: 16px;
       box-shadow: 0 0 30px #00ffcc66;
-      width: 90%;
-      max-width: 840px;
-      height: 85vh;
+      width: 100%;
+      height: 100%;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -37,7 +75,6 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
     }
 
     #agent {
@@ -54,6 +91,7 @@
       flex: 1;
       overflow-y: auto;
       white-space: pre-wrap;
+      margin-top: 10px;
       padding-right: 8px;
       scroll-behavior: smooth;
     }
@@ -66,17 +104,12 @@
     #input {
       flex: 1;
       padding: 10px;
-      background: #000000;
+      background: #000;
       border: 1px solid #00ffcc;
       color: #00ffcc;
       font-size: 1rem;
-      font-family: inherit;
       border-radius: 8px;
-    }
-
-    ::selection {
-      background: #00ffcc;
-      color: #000;
+      font-family: inherit;
     }
 
     #footer {
@@ -88,23 +121,29 @@
   </style>
 </head>
 <body>
-  <div id="terminal-wrapper">
-    <div id="header">
-      <div>MCP Terminal — <strong>LinusAI</strong></div>
-      <select id="agent">
-        <option value="kernel">🧠 Kernel Agent</option>
-        <option value="os">💻 OS Agent</option>
-      </select>
-    </div>
+  <div id="sidebar">
+    <h2>History</h2>
+    <div id="history"></div>
+    <button id="new-chat">New Chat</button>
+  </div>
 
-    <div id="chat"></div>
+  <div id="main">
+    <div id="terminal">
+      <div id="header">
+        <div>MCP Terminal — <strong>LinusAI</strong></div>
+        <select id="agent">
+          <option value="kernel">Kernel Agent</option>
+          <option value="os">OS Agent</option>
+        </select>
+      </div>
 
-    <div id="input-bar">
-      <input id="input" type="text" placeholder="> Type your question and hit enter..." autofocus />
-    </div>
+      <div id="chat"></div>
 
-    <div id="footer">
-      Groq-Powered • Designed for Legends
+      <div id="input-bar">
+        <input id="input" type="text" placeholder="> Type your question and hit enter..." autofocus />
+      </div>
+
+      <div id="footer">Groq-Powered • Designed for Legends</div>
     </div>
   </div>
 
@@ -112,13 +151,30 @@
     const chat = document.getElementById("chat");
     const input = document.getElementById("input");
     const agentSelector = document.getElementById("agent");
+    const historyDiv = document.getElementById("history");
+    const newChatBtn = document.getElementById("new-chat");
 
     const BACKEND_URL = "https://21f9505f-1c16-4cf0-b124-d8570113d6b9-00-dc4e2n37xko5.sisko.replit.dev";
 
-    function typeEffect(target, text, speed = 15) {
+    let messageLog = [];
+
+    function updateHistorySidebar() {
+      historyDiv.innerHTML = "";
+      messageLog.slice(-5).forEach((entry, index) => {
+        const button = document.createElement("button");
+        button.className = "chat-title";
+        button.textContent = entry.user.slice(0, 30) + "...";
+        button.onclick = () => {
+          chat.innerHTML = `> ${entry.user}\nLinusAI: ${entry.bot}\n`;
+        };
+        historyDiv.appendChild(button);
+      });
+    }
+
+    function typeEffect(element, text, speed = 15) {
       let i = 0;
       const line = document.createElement("div");
-      chat.appendChild(line);
+      element.appendChild(line);
 
       function typing() {
         if (i < text.length) {
@@ -146,13 +202,15 @@
         try {
           const res = await fetch(`${BACKEND_URL}/ask?agent=${agent}`, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message: userMsg })
           });
 
           const data = await res.json();
+
+          messageLog.push({ user: userMsg, bot: data.reply });
+          updateHistorySidebar();
+
           typeEffect(chat, `LinusAI (${agent}):\n${data.reply}\n`);
 
         } catch (err) {
@@ -162,6 +220,16 @@
         chat.scrollTop = chat.scrollHeight;
       }
     });
+
+    newChatBtn.onclick = async () => {
+      const agent = agentSelector.value;
+      await fetch(`${BACKEND_URL}/clear?agent=${agent}`, {
+        method: "POST"
+      });
+      chat.innerHTML = "";
+      messageLog = [];
+      updateHistorySidebar();
+    };
   </script>
 </body>
 </html>
