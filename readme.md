@@ -76,8 +76,8 @@ README.md
 
 ## 👤 Author
 
-**Flectrike Aymn**  
-AI Builder • Designer • Creator of LinusAI  
+**Aymn**  
+Artist • GENAI Engineer • Designer • Creator of LinusAI  
 
 🔗 **Connect with me**:  
 - 🧑‍💻 GitHub: [aymnsk](https://github.com/aymnsk)  
