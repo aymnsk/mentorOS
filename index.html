@@ -17,6 +17,21 @@
       height: 100vh;
     }
 
+    #sidebar-toggle-mobile {
+      display: none;
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      background: #000;
+      border: 1px solid #00ffcc;
+      color: #00ffcc;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 1rem;
+      z-index: 1000;
+      cursor: pointer;
+    }
+
     #sidebar {
       width: 240px;
       background: #111;
@@ -28,7 +43,7 @@
     }
 
     #sidebar.hidden {
-      transform: translateX(-100%);
+      display: none;
     }
 
     #sidebar h2 {
@@ -58,23 +73,17 @@
       cursor: pointer;
     }
 
-    #toggle-sidebar {
-      background: #000;
-      border: 1px solid #00ffcc;
-      color: #00ffcc;
-      padding: 6px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.75rem;
-      margin-bottom: 12px;
-    }
-
     #main {
       flex: 1;
       display: flex;
       flex-direction: column;
       padding: 16px;
       overflow: hidden;
+    }
+
+    #main.fullscreen {
+      width: 100%;
+      padding: 16px;
     }
 
     #terminal {
@@ -147,13 +156,20 @@
 
       #sidebar {
         width: 100%;
-        transform: translateY(0);
         border-right: none;
         border-bottom: 1px solid #00ffcc44;
       }
 
       #sidebar.hidden {
         display: none;
+      }
+
+      #sidebar-toggle-mobile {
+        display: block;
+      }
+
+      #main.fullscreen {
+        padding: 12px;
       }
 
       #main {
@@ -168,8 +184,9 @@
   </style>
 </head>
 <body>
+  <button id="sidebar-toggle-mobile">📂</button>
+
   <div id="sidebar">
-    <button id="toggle-sidebar">Hide Sidebar</button>
     <h2>History</h2>
     <div id="history"></div>
     <button id="new-chat">New Chat</button>
@@ -201,8 +218,9 @@
     const agentSelector = document.getElementById("agent");
     const historyDiv = document.getElementById("history");
     const newChatBtn = document.getElementById("new-chat");
-    const toggleSidebarBtn = document.getElementById("toggle-sidebar");
     const sidebar = document.getElementById("sidebar");
+    const toggleMobileBtn = document.getElementById("sidebar-toggle-mobile");
+    const main = document.getElementById("main");
 
     const BACKEND_URL = "https://21f9505f-1c16-4cf0-b124-d8570113d6b9-00-dc4e2n37xko5.sisko.replit.dev";
 
@@ -316,9 +334,10 @@
       updateHistorySidebar();
     };
 
-    toggleSidebarBtn.onclick = () => {
+    toggleMobileBtn.onclick = () => {
       sidebar.classList.toggle("hidden");
-      toggleSidebarBtn.textContent = sidebar.classList.contains("hidden") ? "Show Sidebar" : "Hide Sidebar";
+      main.classList.toggle("fullscreen");
+      toggleMobileBtn.textContent = sidebar.classList.contains("hidden") ? "📂 Show" : "📂";
     };
   </script>
 </body>
