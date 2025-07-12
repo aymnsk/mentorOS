@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>MCP Terminal — LinusAI</title>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     * { box-sizing: border-box; }
     body {
@@ -12,6 +13,7 @@
       color: #00ffcc;
       font-family: 'Fira Mono', Menlo, Monaco, Consolas, monospace;
       display: flex;
+      flex-direction: row;
       height: 100vh;
     }
 
@@ -22,6 +24,11 @@
       display: flex;
       flex-direction: column;
       padding: 16px;
+      transition: transform 0.3s ease;
+    }
+
+    #sidebar.hidden {
+      transform: translateX(-100%);
     }
 
     #sidebar h2 {
@@ -51,11 +58,23 @@
       cursor: pointer;
     }
 
+    #toggle-sidebar {
+      background: #000;
+      border: 1px solid #00ffcc;
+      color: #00ffcc;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      margin-bottom: 12px;
+    }
+
     #main {
       flex: 1;
       display: flex;
       flex-direction: column;
       padding: 16px;
+      overflow: hidden;
     }
 
     #terminal {
@@ -75,6 +94,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     #agent {
@@ -118,10 +139,37 @@
       color: #00ffcc88;
       margin-top: 4px;
     }
+
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+
+      #sidebar {
+        width: 100%;
+        transform: translateY(0);
+        border-right: none;
+        border-bottom: 1px solid #00ffcc44;
+      }
+
+      #sidebar.hidden {
+        display: none;
+      }
+
+      #main {
+        padding: 12px;
+      }
+
+      #header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
   </style>
 </head>
 <body>
   <div id="sidebar">
+    <button id="toggle-sidebar">Hide Sidebar</button>
     <h2>History</h2>
     <div id="history"></div>
     <button id="new-chat">New Chat</button>
@@ -143,131 +191,135 @@
         <input id="input" type="text" placeholder="> Type your question and hit enter..." autofocus />
       </div>
 
-      <div id="footer"> Designed By Aymn</div>
+      <div id="footer">Designed By Aymn</div>
     </div>
   </div>
 
-  <<script>
-  const chat = document.getElementById("chat");
-  const input = document.getElementById("input");
-  const agentSelector = document.getElementById("agent");
-  const historyDiv = document.getElementById("history");
-  const newChatBtn = document.getElementById("new-chat");
+  <script>
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("input");
+    const agentSelector = document.getElementById("agent");
+    const historyDiv = document.getElementById("history");
+    const newChatBtn = document.getElementById("new-chat");
+    const toggleSidebarBtn = document.getElementById("toggle-sidebar");
+    const sidebar = document.getElementById("sidebar");
 
-  const BACKEND_URL = "https://21f9505f-1c16-4cf0-b124-d8570113d6b9-00-dc4e2n37xko5.sisko.replit.dev";
+    const BACKEND_URL = "https://21f9505f-1c16-4cf0-b124-d8570113d6b9-00-dc4e2n37xko5.sisko.replit.dev";
 
-  let messageLog = [];
+    let messageLog = [];
 
-  function updateHistorySidebar() {
-    historyDiv.innerHTML = "";
-    messageLog.slice(-5).forEach((entry, index) => {
-      const button = document.createElement("button");
-      button.className = "chat-title";
-      button.textContent = entry.user.slice(0, 30) + "...";
-      button.onclick = () => {
-        chat.innerHTML = `> ${entry.user}\nLinusAI: ${entry.bot}\n`;
-      };
-      historyDiv.appendChild(button);
-    });
-  }
-
-  function typeEffect(target, text, speed = 15) {
-    let i = 0;
-    const line = document.createElement("div");
-    target.appendChild(line);
-
-    function typing() {
-      if (i < text.length) {
-        line.textContent += text.charAt(i);
-        i++;
-        setTimeout(typing, speed);
-      } else {
-        chat.scrollTop = chat.scrollHeight;
-      }
+    function updateHistorySidebar() {
+      historyDiv.innerHTML = "";
+      messageLog.slice(-5).forEach((entry) => {
+        const button = document.createElement("button");
+        button.className = "chat-title";
+        button.textContent = entry.user.slice(0, 30) + "...";
+        button.onclick = () => {
+          chat.innerHTML = `> ${entry.user}\nLinusAI: ${entry.bot}\n`;
+        };
+        historyDiv.appendChild(button);
+      });
     }
-    typing();
-  }
 
-  input.addEventListener("keydown", async (e) => {
-    if (e.key === "Enter" && input.value.trim() !== "") {
-      const userMsg = input.value.trim();
-      const agent = agentSelector.value;
-      input.value = "";
-
-      const userLine = document.createElement("div");
-      userLine.textContent = "> " + userMsg;
-      chat.appendChild(userLine);
-      chat.scrollTop = chat.scrollHeight;
-
-      try {
-        const res = await fetch(`${BACKEND_URL}/ask?agent=${agent}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: userMsg })
-        });
-
-        const data = await res.json();
-        const fullReply = data.reply.trim();
-
-        const replyWrapper = document.createElement("div");
-        replyWrapper.innerHTML = `<strong>LinusAI (${agent}):</strong><br/>`;
-
-        if (fullReply.length > 400) {
-          const summary = fullReply.slice(0, 300) + "…";
-          const summaryDiv = document.createElement("div");
-          summaryDiv.textContent = summary;
-
-          const showFull = document.createElement("button");
-          showFull.textContent = "Show full reply";
-          showFull.style.cssText = `
-            margin-top: 8px;
-            background: #000;
-            border: 1px solid #00ffcc;
-            color: #00ffcc;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            cursor: pointer;
-          `;
-
-          showFull.onclick = () => {
-            summaryDiv.textContent = fullReply;
-            showFull.remove();
-          };
-
-          replyWrapper.appendChild(summaryDiv);
-          replyWrapper.appendChild(showFull);
+    function typeEffect(target, text, speed = 15) {
+      let i = 0;
+      const line = document.createElement("div");
+      target.appendChild(line);
+      function typing() {
+        if (i < text.length) {
+          line.textContent += text.charAt(i);
+          i++;
+          setTimeout(typing, speed);
         } else {
-          const shortDiv = document.createElement("div");
-          shortDiv.textContent = fullReply;
-          replyWrapper.appendChild(shortDiv);
+          chat.scrollTop = chat.scrollHeight;
+        }
+      }
+      typing();
+    }
+
+    input.addEventListener("keydown", async (e) => {
+      if (e.key === "Enter" && input.value.trim() !== "") {
+        const userMsg = input.value.trim();
+        const agent = agentSelector.value;
+        input.value = "";
+
+        const userLine = document.createElement("div");
+        userLine.textContent = "> " + userMsg;
+        chat.appendChild(userLine);
+        chat.scrollTop = chat.scrollHeight;
+
+        try {
+          const res = await fetch(`${BACKEND_URL}/ask?agent=${agent}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: userMsg })
+          });
+
+          const data = await res.json();
+          const fullReply = data.reply.trim();
+
+          const replyWrapper = document.createElement("div");
+          replyWrapper.innerHTML = `<strong>LinusAI (${agent}):</strong><br/>`;
+
+          if (fullReply.length > 400) {
+            const summary = fullReply.slice(0, 300) + "…";
+            const summaryDiv = document.createElement("div");
+            summaryDiv.textContent = summary;
+
+            const showFull = document.createElement("button");
+            showFull.textContent = "Show full reply";
+            showFull.style.cssText = `
+              margin-top: 8px;
+              background: #000;
+              border: 1px solid #00ffcc;
+              color: #00ffcc;
+              padding: 4px 8px;
+              border-radius: 6px;
+              font-size: 0.8rem;
+              cursor: pointer;
+            `;
+
+            showFull.onclick = () => {
+              summaryDiv.textContent = fullReply;
+              showFull.remove();
+            };
+
+            replyWrapper.appendChild(summaryDiv);
+            replyWrapper.appendChild(showFull);
+          } else {
+            const shortDiv = document.createElement("div");
+            shortDiv.textContent = fullReply;
+            replyWrapper.appendChild(shortDiv);
+          }
+
+          chat.appendChild(replyWrapper);
+
+          messageLog.push({ user: userMsg, bot: fullReply });
+          updateHistorySidebar();
+        } catch (err) {
+          const errDiv = document.createElement("div");
+          errDiv.textContent = "[Error] Backend not reachable.";
+          chat.appendChild(errDiv);
         }
 
-        chat.appendChild(replyWrapper);
-
-        // Save message
-        messageLog.push({ user: userMsg, bot: fullReply });
-        updateHistorySidebar();
-
-      } catch (err) {
-        const errDiv = document.createElement("div");
-        errDiv.textContent = "[Error] Backend not reachable.";
-        chat.appendChild(errDiv);
+        chat.scrollTop = chat.scrollHeight;
       }
-
-      chat.scrollTop = chat.scrollHeight;
-    }
-  });
-
-  newChatBtn.onclick = async () => {
-    const agent = agentSelector.value;
-    await fetch(`${BACKEND_URL}/clear?agent=${agent}`, {
-      method: "POST"
     });
-    chat.innerHTML = "";
-    messageLog = [];
-    updateHistorySidebar();
-  };
-</script>
+
+    newChatBtn.onclick = async () => {
+      const agent = agentSelector.value;
+      await fetch(`${BACKEND_URL}/clear?agent=${agent}`, {
+        method: "POST"
+      });
+      chat.innerHTML = "";
+      messageLog = [];
+      updateHistorySidebar();
+    };
+
+    toggleSidebarBtn.onclick = () => {
+      sidebar.classList.toggle("hidden");
+      toggleSidebarBtn.textContent = sidebar.classList.contains("hidden") ? "Show Sidebar" : "Hide Sidebar";
+    };
+  </script>
 </body>
 </html>
