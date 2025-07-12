@@ -2,77 +2,109 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>MCP Terminal Agent</title>
+  <title>MCP Terminal — v1</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap" rel="stylesheet">
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
-      background-color: #0f0f0f;
-      font-family: 'Courier New', monospace;
-      color: #00ff00;
       margin: 0;
-      padding: 0;
+      background: #000000;
+      color: #00ffcc;
+      font-family: 'Fira Mono', Menlo, Monaco, Consolas, monospace;
       display: flex;
       justify-content: center;
-      align-items: flex-start;
+      align-items: center;
       height: 100vh;
-      overflow: hidden;
     }
 
-    #terminal {
-      background-color: #1a1a1a;
+    #terminal-wrapper {
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid #00ffcc44;
+      border-radius: 16px;
+      box-shadow: 0 0 30px #00ffcc66;
       width: 90%;
-      max-width: 900px;
-      height: 95%;
-      margin-top: 20px;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 20px #00ff00;
-      overflow-y: auto;
+      max-width: 840px;
+      height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 16px;
+    }
+
+    #header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    #agent {
+      background: #000000;
+      border: 1px solid #00ffcc;
+      color: #00ffcc;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+      border-radius: 8px;
+      font-family: inherit;
     }
 
     #chat {
+      flex: 1;
+      overflow-y: auto;
       white-space: pre-wrap;
-      margin-bottom: 1em;
+      padding-right: 8px;
+      scroll-behavior: smooth;
     }
 
     #input-bar {
       display: flex;
-      align-items: center;
-      margin-top: 10px;
-    }
-
-    #agent {
-      background: #000;
-      color: #0f0;
-      border: 1px solid #0f0;
-      padding: 6px;
-      font-size: 1rem;
-      margin-right: 10px;
+      margin-top: 8px;
     }
 
     #input {
-      flex-grow: 1;
+      flex: 1;
       padding: 10px;
-      background: #000;
-      color: #0f0;
-      border: 1px solid #0f0;
+      background: #000000;
+      border: 1px solid #00ffcc;
+      color: #00ffcc;
       font-size: 1rem;
+      font-family: inherit;
+      border-radius: 8px;
     }
 
     ::selection {
-      background: #0f0;
+      background: #00ffcc;
       color: #000;
+    }
+
+    #footer {
+      font-size: 0.7rem;
+      text-align: right;
+      color: #00ffcc88;
+      margin-top: 4px;
     }
   </style>
 </head>
 <body>
-  <div id="terminal">
-    <div id="chat"></div>
-    <div id="input-bar">
+  <div id="terminal-wrapper">
+    <div id="header">
+      <div>MCP Terminal — <strong>LinusAI</strong></div>
       <select id="agent">
         <option value="kernel">🧠 Kernel Agent</option>
         <option value="os">💻 OS Agent</option>
       </select>
-      <input id="input" type="text" placeholder="Ask your mentor..." autofocus />
+    </div>
+
+    <div id="chat"></div>
+
+    <div id="input-bar">
+      <input id="input" type="text" placeholder="> Type your question and hit enter..." autofocus />
+    </div>
+
+    <div id="footer">
+      Groq-Powered • Designed for Legends
     </div>
   </div>
 
@@ -81,16 +113,20 @@
     const input = document.getElementById("input");
     const agentSelector = document.getElementById("agent");
 
-    // ✅ Hardcoded to your Replit backend URL
     const BACKEND_URL = "https://21f9505f-1c16-4cf0-b124-d8570113d6b9-00-dc4e2n37xko5.sisko.replit.dev";
 
-    function typeEffect(element, text, speed = 20) {
+    function typeEffect(target, text, speed = 15) {
       let i = 0;
+      const line = document.createElement("div");
+      chat.appendChild(line);
+
       function typing() {
         if (i < text.length) {
-          element.innerHTML += text.charAt(i);
+          line.textContent += text.charAt(i);
           i++;
           setTimeout(typing, speed);
+        } else {
+          chat.scrollTop = chat.scrollHeight;
         }
       }
       typing();
@@ -102,7 +138,9 @@
         const agent = agentSelector.value;
         input.value = "";
 
-        chat.innerHTML += `\n> ${userMsg}\n`;
+        const userLine = document.createElement("div");
+        userLine.textContent = "> " + userMsg;
+        chat.appendChild(userLine);
         chat.scrollTop = chat.scrollHeight;
 
         try {
@@ -115,11 +153,10 @@
           });
 
           const data = await res.json();
-          chat.innerHTML += `LinusAI (${agent}):\n`;
-          typeEffect(chat, data.reply + "\n\n");
+          typeEffect(chat, `LinusAI (${agent}):\n${data.reply}\n`);
 
         } catch (err) {
-          chat.innerHTML += `[Error] Could not reach backend.\n\n`;
+          typeEffect(chat, `[Error] Failed to reach backend.`);
         }
 
         chat.scrollTop = chat.scrollHeight;
